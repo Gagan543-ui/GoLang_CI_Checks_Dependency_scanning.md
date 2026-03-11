@@ -1,43 +1,63 @@
 pipeline {
     agent any
 
+    environment {
+        VENV = "venv"
+    }
+
     stages {
 
         stage('Checkout Code') {
             steps {
-                git 'https://github.com/Gagan543-ui/GoLang_CI_Checks_Dependency_scanning.md.git'
+                git branch: 'main',
+                url: 'https://github.com/Gagan543-ui/GoLang_CI_Checks_Dependency_scanning.md.git'
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Setup Python Environment') {
             steps {
                 sh '''
-                pip3 install ansible ansible-lint yamllint molecule
+                python3 -m venv $VENV
+                . $VENV/bin/activate
+                pip install --upgrade pip
+                pip install ansible ansible-lint yamllint molecule
                 '''
             }
         }
 
         stage('YAML Lint Check') {
             steps {
-                sh 'yamllint .'
+                sh '''
+                . $VENV/bin/activate
+                yamllint .
+                '''
             }
         }
 
         stage('Ansible Lint Check') {
             steps {
-                sh 'ansible-lint'
+                sh '''
+                . $VENV/bin/activate
+                ansible-lint
+                '''
             }
         }
 
         stage('Syntax Check') {
             steps {
-                sh 'ansible-playbook site.yml --syntax-check -i inventory'
+                sh '''
+                . $VENV/bin/activate
+                ansible-playbook site.yml --syntax-check -i inventory
+                '''
             }
         }
 
         stage('Role Tests') {
             steps {
-                sh 'ansible-playbook site.yml -i inventory'
+                sh '''
+                . $VENV/bin/activate
+                ansible-playbook site.yml -i inventory
+                '''
             }
         }
     }
@@ -48,6 +68,9 @@ pipeline {
         }
         failure {
             echo 'CI Checks Failed ❌'
+        }
+        always {
+            echo 'Pipeline Execution Completed'
         }
     }
 }
