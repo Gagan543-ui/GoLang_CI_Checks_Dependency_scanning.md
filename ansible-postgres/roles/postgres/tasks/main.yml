@@ -1,0 +1,66 @@
+---
+
+# Install PostgreSQL (Ubuntu)
+- name: Install PostgreSQL on Ubuntu
+  apt:
+    name:
+      - postgresql
+      - postgresql-contrib
+      - python3-psycopg2
+      - acl
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+# Install PostgreSQL (RedHat)
+- name: Install PostgreSQL on RedHat
+  yum:
+    name:
+      - postgresql-server
+      - postgresql-contrib
+      - python3-psycopg2
+      - acl
+    state: present
+  when: ansible_os_family == "RedHat"
+
+# Initialize DB (RedHat only)
+- name: Initialize PostgreSQL (RedHat)
+  command: postgresql-setup --initdb
+  when: ansible_os_family == "RedHat"
+  args:
+    creates: /var/lib/pgsql/data/PG_VERSION
+
+# Start service
+- name: Start and enable PostgreSQL
+  service:
+    name: postgresql
+    state: started
+    enabled: yes
+
+# Create DB
+- name: Create database
+  become: yes
+  become_user: postgres
+  community.postgresql.postgresql_db:
+    name: "{{ postgres_db_name }}"
+    state: present
+
+# Create user
+- name: Create database user
+  become: yes
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    name: "{{ postgres_db_user }}"
+    password: "{{ postgres_db_password }}"
+    state: present
+
+# Grant privileges
+- name: Grant privileges
+  become: yes
+  become_user: postgres
+  community.postgresql.postgresql_privs:
+    database: "{{ postgres_db_name }}"
+    roles: "{{ postgres_db_user }}"
+    type: database
+    privs: ALL
+    state: present
